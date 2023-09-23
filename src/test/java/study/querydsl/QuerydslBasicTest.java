@@ -2,6 +2,7 @@ package study.querydsl;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -21,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import study.querydsl.dto.MemberDto;
 import study.querydsl.dto.QMemberDto;
+import study.querydsl.dto.UserDto;
 import study.querydsl.entity.Member;
 import study.querydsl.entity.QMember;
 import study.querydsl.entity.Team;
@@ -328,6 +330,7 @@ public class QuerydslBasicTest {
 
     @Test
     public void simpleProjection(){
+        // 반환 타입 1개 -> 해당 타입 그대로
         List<String> result = queryFactory
                 .select(member.username)
                 .from(member)
@@ -339,29 +342,88 @@ public class QuerydslBasicTest {
 
     @Test
     public void tupleProjection(){
+        // 반환 타입 2개 이상 -> Tuple
         List<Tuple> result = queryFactory.select(member.username, member.age)
                 .from(member)
                 .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("tuple = " + tuple.get(member.username));
+        }
+    }
+
+    @Test
+    public void findDtoByJPQL() {
+        List<MemberDto> result = em.createQuery(
+                "select new study.querydsl.dto.MemberDto(m.username, m.age) " +
+                    "from Member m", MemberDto.class)
+            .getResultList();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
     }
 
     @Test
     public void findDtoBySetter(){
-        queryFactory
-                .select(Projections.bean(MemberDto.class,
-                        member.username,
-                        member.age))
-                .from(member)
-                .fetch();
+        List<MemberDto> result = queryFactory
+            .select(Projections.bean(MemberDto.class, // getter, setter 필요함
+                member.username,
+                member.age))
+            .from(member)
+            .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
     }
 
     @Test
     public void findDtoByField(){
-        queryFactory
-                .select(Projections.fields(MemberDto.class,
-                        member.username,
-                        member.age))
-                .from(member)
-                .fetch();
+        List<MemberDto> result = queryFactory
+            .select(Projections.fields(MemberDto.class, // getter, setter 없어도 필드에 값 삽입
+                member.username,
+                member.age))
+            .from(member)
+            .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    public void findDtoByConstructor(){
+        List<MemberDto> result = queryFactory
+            .select(Projections.constructor(MemberDto.class, // 생성자 이용, access level 주의
+                member.username,
+                member.age))
+            .from(member)
+            .fetch();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    public void findUserDto(){
+        QMember memberSub = new QMember("memberSub");
+
+        List<UserDto> result = queryFactory
+            .select(Projections.fields(UserDto.class, // getter, setter 없어도 필드에 값 삽입
+                member.username.as("name"), // 필드에 별칭 적용 name 필드에 member.username 적용
+                ExpressionUtils.as(
+                    JPAExpressions
+                        .select(memberSub.age.max())
+                        .from(memberSub), "age")
+            ))
+            .from(member)
+            .fetch();
+
+        for (UserDto userDto : result) {
+            System.out.println("userDto = " + userDto);
+        }
     }
 
     @Test
