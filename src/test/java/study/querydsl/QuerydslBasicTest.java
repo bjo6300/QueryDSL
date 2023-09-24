@@ -427,7 +427,7 @@ public class QuerydslBasicTest {
     }
 
     @Test
-    public void findDtoByQueryProjection(){
+    public void findDtoByQueryProjection(){ // DTO의 생성자에 @QueryProjection 넣고 Q파일 생성 / 이러면 DTO가 QueryDsl에 의존적
         List<MemberDto> result = queryFactory.select(new QMemberDto(member.username, member.age))
                 .from(member)
                 .fetch();
