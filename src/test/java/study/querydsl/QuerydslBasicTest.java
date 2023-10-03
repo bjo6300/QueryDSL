@@ -475,11 +475,12 @@ public class QuerydslBasicTest {
     private List<Member> searchMember2(String usernameCond, Integer ageCond) {
         return queryFactory
                 .selectFrom(member)
-                .where(usernameEq(usernameCond),ageEq(ageCond))
+//                .where(usernameEq(usernameCond),ageEq(ageCond)) // 자주 사용
+                .where(allEq(usernameCond, ageCond))
                 .fetch();
     }
 
-    private BooleanExpression usernameEq(String usernameCond) {
+    private BooleanExpression usernameEq(String usernameCond) { // BooleanExpression은 Predicate의 구현체
         if(usernameCond == null) {
             return null;
         }
@@ -487,15 +488,11 @@ public class QuerydslBasicTest {
         return member.username.eq(usernameCond);
     }
 
-    private BooleanExpression ageEq(Integer ageCond) {
-        if(ageCond == null){
-            return null;
-        }
-
-        return member.age.eq(ageCond);
+    private Predicate ageEq(Integer ageCond) {
+        return ageCond != null ? member.age.eq(ageCond) : null;
     }
 
-    private BooleanExpression allEq(String usernameCond, Integer ageCond){
+    private BooleanExpression allEq(String usernameCond, Integer ageCond){ // 이렇게 분리해서 재사용 but null 주의
         return usernameEq(usernameCond).and(ageEq(ageCond));
     }
 
@@ -505,15 +502,27 @@ public class QuerydslBasicTest {
                 .update(member)
                 .set(member.username, "비회원")
                 .where(member.age.lt(28))
-                .execute();
+                .execute(); // fetch 아님
+        // bulk 연산은 영속성 컨텍스트의 데이터를 변경하지 않고 DB에 쿼리를 바로 적용한다.
+        // 그러므로 db와 영속성 컨텍스트의 데이터가 다를 수 있다.
+        // bulk 연산 후 select를 해보면 영속성 컨텍스트의 데이터를 가져온다. -> repeatable read
+        // 이걸 방지하기 위해 bulk 연산 후 영속성 컨텍스트를 비워준다. em.flush(), em.clear() -> 어노테이션 : @Modifying(clearAutomatically = true)
     }
 
     @Test
     public void bulkAdd(){
         long count  = queryFactory
                 .update(member)
-                .set(member.age,member.age.add(1))
+                .set(member.age,member.age.add(1)) // min은 없다. 뺄셈할거면 -를 붙여서 연산
                 .execute();
+    }
+
+    @Test
+    public void bulkMultiply(){
+        long count  = queryFactory
+            .update(member)
+            .set(member.age,member.age.multiply(2))
+            .execute();
     }
 
     @Test
