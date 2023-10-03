@@ -449,11 +449,11 @@ public class QuerydslBasicTest {
     private List<Member> searchMember1(String usernameCond, Integer ageCond) {
 
         BooleanBuilder builder = new BooleanBuilder();
-        if(usernameCond != null){
+        if(usernameCond != null) { // usernameCond가 null이면 where문 조건이 들어가지 않는다.
             builder.and(member.username.eq(usernameCond));
         }
 
-        if(ageCond != null){
+        if(ageCond != null) {
             builder.and(member.age.eq(ageCond));
         }
 
