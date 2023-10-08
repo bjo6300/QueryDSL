@@ -107,12 +107,25 @@ public class MemberJpaRepository {
                 .from(member)
                 .leftJoin(member.team,team)
                 .where(
-                        usernameEq(condition.getUsername()),
+                        usernameEq(condition.getUsername()), // 이 방식 추천
                         teamNameEq(condition.getTeamName()),
                         ageGoe(condition.getAgeGoe()),
                         ageLoe(condition.getAgeLoe())
                 )
                 .fetch();
+    }
+
+    public List<Member> searchMember(MemberSearchCondition condition){
+        return queryFactory
+            .selectFrom(member)
+            .leftJoin(member.team,team)
+            .where(
+                usernameEq(condition.getUsername()), // 메서드 재사용
+                teamNameEq(condition.getTeamName()),
+                ageGoe(condition.getAgeGoe()),
+                ageLoe(condition.getAgeLoe())
+            )
+            .fetch();
     }
 
     private Predicate usernameEq(String username) {
